@@ -70,16 +70,21 @@ task generateMetadata {
         def baseClass = "mindustry/mod/Mod"
         def userClasses = inputs.files.asFileTree.collect()
         // build full inheritance map
+        print("Building inheritance map... ")
+        System.out.flush()
         def classes = (configurations.compileClasspath.asList() + configurations.runtimeClasspath.asList() + userClasses)
                 .stream()
                 .flatMap {(it.name.endsWith(".jar") ? zipTree(it).asList() : [it]).stream() }
                 .filter { it.name.endsWith(".class") }
         def inheritance = new HashMap<String, String>()
         for(final def cls in classes) {
-            def cr = new org.objectweb.asm.ClassReader(cls.newInputStream())
+            def str = cls.newInputStream()
+            def cr = new org.objectweb.asm.ClassReader(str)
             if((cr.className == null) || ((cr.superName == null))) continue
             inheritance.put(cr.className, cr.superName)
+            str.close()
         }
+        println("Parsed ${inheritance.size()} classes.")
         // check all classes from kotlin compiler
         def mainClass = null
         for (final def file in userClasses) {
